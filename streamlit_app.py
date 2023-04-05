@@ -3,6 +3,19 @@ import pandas as pd
 from skimpy import clean_columns
 import matplotlib.pyplot as plt
 
+def _max_width_():
+    max_width_str = f"max-width: 2000px;"
+    st.markdown(
+        f"""
+    <style>
+    .reportview-container .main .block-container{{
+        {max_width_str}
+    }}
+    </style>    
+    """,
+        unsafe_allow_html=True,
+    )
+_max_width_()
 st.set_option('deprecation.showPyplotGlobalUse', False)
 
 # df_raw = pd.read_csv("/Users/richard/Downloads/HDB Legacy Current Client List - Current Wave Breakdown.csv")
