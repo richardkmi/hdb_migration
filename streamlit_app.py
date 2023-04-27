@@ -1,69 +1,33 @@
 import streamlit as st
 import pandas as pd
-from skimpy import clean_columns
+import skimpy
 import matplotlib.pyplot as plt
 
-def _max_width_():
-    max_width_str = f"max-width: 2000px;"
-    st.markdown(
-        f"""
-    <style>
-    .reportview-container .main .block-container{{
-        {max_width_str}
-    }}
-    </style>    
-    """,
-        unsafe_allow_html=True,
-    )
-_max_width_()
 st.set_option('deprecation.showPyplotGlobalUse', False)
 
-# df_raw = pd.read_csv("/Users/richard/Downloads/HDB Legacy Current Client List - Current Wave Breakdown.csv")
-uploaded_file = st.file_uploader("upload hdb migration csv", type=["csv", "xlsx"])
 
-# Check if file was uploaded
-df_raw = None
-if uploaded_file:
-    # Check MIME type of the uploaded file
-    if uploaded_file.type == "text/csv":
-        df_raw = pd.read_csv(uploaded_file)
-    else:
-        df_raw = pd.read_excel(uploaded_file)
+prompt = "Download this Google Sheet as xls"
+# st.text("HDB [HDB Migration Tracker](https://docs.google.com/spreadsheets/d/19jhps4LppyoiG2X6wRNm5CNVknsWHNsG8ucQ0vJGqZQ/edit?usp=sharing)")
+st.write("1. Download this as an xlsx file [HDB Migration Tracker](https://docs.google.com/spreadsheets/d/19jhps4LppyoiG2X6wRNm5CNVknsWHNsG8ucQ0vJGqZQ/edit?usp=sharing)")
 
+st.write("2. Upload the downloaded xlsx file")
+xls = st.file_uploader(label="File Uploader:")
+df = None
+if xls:
+    df = skimpy.clean_columns(pd.read_excel(xls, sheet_name="Current Wave Breakdown"))
+    cols = ["Client_name"]
 
-if df_raw is not None:
-    df = clean_columns(df_raw, case = 'snake')
+    if xls:
+        migration_counts = df['migration_status'].value_counts(normalize=True)
+        fig, ax = plt.subplots(figsize=(6, 4))
+        migration_counts.plot(kind='barh', ax=ax)
+        plt.title('Migration Status')
+        plt.xlabel('Percentage')
+        plt.ylabel('Migration Status')
 
-    migrated_counts = df['is_migrated'].value_counts(normalize=True) * 100
-    fig, ax = plt.subplots()
+        # add percentage labels to the plot
+        for i in ax.containers:
+            ax.bar_label(i, label_type='edge', labels=[f'{w.get_width() * 100:.1f}%' for w in i], fontsize=8)
 
-    plt.subplots(figsize=(20, 10))
-    migrated_counts.plot(kind='bar', ax=ax)
-    ax.set_ylabel('Count')
-    # Set the title
-    ax.set_title('Count and Percentage of Each Category')
-
-    st.bar_chart(migrated_counts)
-
-
-    unique_waves = df['wave'].unique()
-    waves = st.multiselect("wave", unique_waves, unique_waves)
-
-    migrated_states = st.multiselect("Migration Status", df['is_migrated'].unique())
-    responses = st.multiselect("has_responded_to_comms", df['has_responded_to_comms'].unique())
-    clients = st.multiselect("client_name", df['client_name'].unique())
-    csms = st.multiselect("Customer Success Manager", df['csm'].unique())
-
-
-
-    df = df[df['wave'].isin(waves)]
-    if clients:
-        df = df[df['client_name'].isin(clients)]
-    if responses:
-        df = df[df['has_responded_to_comms'].isin(responses)]
-    if csms:
-        df = df[df['csm'].isin(csms)]
-    if migrated_states:
-        df = df[df['is_migrated'].isin(migrated_states)]
-
-    st.table(df)
+        # display the plot in Streamlit
+        st.pyplot(fig)
